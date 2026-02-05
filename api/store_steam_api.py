@@ -6,6 +6,33 @@ def remover_html(html):
     soup = BeautifulSoup(html, "html.parser")
     return soup.get_text()
 
+def regex_cleaner(clean_string, app_id):
+
+    regex_memory = re.search(r'(Memory).*?(\d+.*?GB)', clean_string)
+    regex_processor = re.search(r"(Processor)\s*(.*?)\s*(?=[A-Z]\w*:)", clean_string)
+    regex_graphics = re.search(r"(Graphics)\s*(.*?)\s*(?=[A-Z]\w*:)", clean_string)
+
+    regex_storage = re.search(r"(Storage)\s*(.*?(?<=[a-z]))(?=[A-Z])", clean_string)
+    if regex_storage is None:
+        regex_storage = re.search(r"(Hard Drive)\s*(.*?(?<=[a-z]))(?=[A-Z])", clean_string)
+
+    # print(regex_storage)
+
+    result_memory = regex_memory.group(1,2)
+    result_processor = regex_processor.group(1,2)
+    result_graphics = regex_graphics.group(1,2)
+    result_storage = regex_storage.group(1, 2)
+
+    clean_dict = {
+        'app_id': str(f'{app_id}'),
+        result_memory[0]: result_memory[1],
+        result_processor[0]: result_processor[1],
+        result_graphics[0]: result_graphics[1],
+        result_storage[0]: result_storage[1]
+    }
+
+    return clean_dict
+
 
 def get_app_details(app_id):
 
@@ -13,29 +40,16 @@ def get_app_details(app_id):
 
     r = requests.get(URL_BASE)
 
-    minimum_req = r.json()[f'{app_id}']['data'].get('pc_requirements', 'None')['minimum']
-    
-    teste = remover_html(minimum_req)
-
-    teste1 = re.search(r'(Memory:).*?(\d+.*?GB)', teste)
-
-    return teste1.group(1,2)
-# teste1.group(1, 2)
-
-lista = [
-    20900, 65930, 203160, 203680, 209080, 218620, 231430, 238320, 
-    242700, 269210, 292030, 304050, 359550, 368420, 424840, 431960, 552500, 
-    582660, 623990, 706220, 899770, 1063730, 1180660, 1422450, 1619990, 
-    1808500, 2149010, 2694490, 2920570
-]
-
-lista_result = []
-for i in lista:
     try:
-        lista_result.append((get_app_details(i)))
+        minimum_req = r.json()[f'{app_id}']['data'].get('pc_requirements', None)['minimum']
     except:
-        print('esse n entrou', i)
+        print(f"ID: {app_id} não foi encontrado")
 
+    clean_string = remover_html(minimum_req)
 
-print(lista_result)
+    # print(clean_string)
+
+    regex_dict = regex_cleaner(clean_string, app_id)
+
+    return regex_dict
 
